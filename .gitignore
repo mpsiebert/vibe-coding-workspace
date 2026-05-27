@@ -1,0 +1,25 @@
+# Node modules
+node_modules/
+.cortex-plugin/mcp-server/node_modules/
+
+# Environment files
+.env
+.env.*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local user/Cortex configs
+settings.json
+skills.json
