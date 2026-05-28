@@ -30,7 +30,7 @@ Give them two options to proceed:
 
 ### Step 3 — Roll the Constraints
 **If Option B (Digital):** Call the `roll_challenge` MCP tool immediately.  
-**If Option A (Physical):** Ask for their 4 numbers (d6, d6, d20, d21) and pass them to `roll_challenge` as `manualRolls`.
+**If Option A (Physical):** Ask for their 4 numbers (d6, d6, d20, d20) and pass them to `roll_challenge` as `manualRolls`.
 
 The tool returns:
 | Roll | Constraint | Options |
@@ -38,7 +38,7 @@ The tool returns:
 | 1d6 | **Theme** (What are you building?) | Interactive Data Dashboard, AI Chatbot, Geospatial Map, Sentiment Analyzer, Data Story, What-If Calculator |
 | 1d6 | **Dataset** (Which data?) | Global Weather, Stock Market/Crypto, Support Transcripts, Supply Chain, Real Estate, TPC-H E-Commerce |
 | 1d20 | **Audience** (Who is it for?) | 20 business personas (Urban Planners → Investigative Journalists) |
-| 1d21 | **Style/Twist** (Visual vibe?) | 21 styles (Cyberpunk → Sci-fi) |
+| 1d20 | **Style/Twist** (Visual vibe?) | 20 styles (Cyberpunk → Neon Noir) |
 
 ### Step 4 — Present the Challenge Card
 Display the result as a clean list or markdown table titled **"🏆 Your Challenge Card"** containing the Theme, Dataset, Audience, and Style/Twist.

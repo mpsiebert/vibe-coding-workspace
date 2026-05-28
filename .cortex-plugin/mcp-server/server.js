@@ -83,7 +83,6 @@ const STYLES = [
   'Glassmorphism',
   'Bauhaus',
   'Art Deco',
-  'Desert Solitude',
   'Sci-fi Futurism',
   'Neon Noir',
 ];
@@ -113,7 +112,7 @@ server.tool(
         theme:    z.number().int().min(1).max(6).optional(),
         dataset:  z.number().int().min(1).max(6).optional(),
         audience: z.number().int().min(1).max(20).optional(),
-        style:    z.number().int().min(1).max(21).optional(),
+        style:    z.number().int().min(1).max(20).optional(),
       })
       .optional()
       .describe('Optional manual rolls from physical dice. Omit for a digital roll.'),
@@ -122,7 +121,7 @@ server.tool(
     const themeIdx    = (manualRolls?.theme    ?? roll(6))  - 1;
     const datasetIdx  = (manualRolls?.dataset  ?? roll(6))  - 1;
     const audienceIdx = (manualRolls?.audience ?? roll(20)) - 1;
-    const styleIdx    = (manualRolls?.style    ?? roll(21)) - 1;
+    const styleIdx    = (manualRolls?.style    ?? roll(20)) - 1;
 
     const result = {
       theme:    THEMES[themeIdx],
