@@ -112,6 +112,16 @@ SNOWFLAKE_PRIVATE_KEY_PASSPHRASE=
 EOF
 echo "✓ Wrote .env with VIBE_* defaults"
 
+# ── Skill ─────────────────────────────────────────────────────
+# Cortex auto-discovers skills from ~/.snowflake/cortex/skills/, so we sync
+# the SKILL.md here on every run. Booth.sh's --skills arg ALSO loads the
+# in-repo copy; both paths point at the same content after this step.
+SKILL_SRC="${REPO_DIR}/.cortex-plugin/skills/vibe-coding/SKILL.md"
+SKILL_DST_DIR="${SNOW_CONFIG_DIR}/cortex/skills/vibe-coding"
+mkdir -p "$SKILL_DST_DIR"
+cp "$SKILL_SRC" "${SKILL_DST_DIR}/SKILL.md"
+echo "✓ Synced SKILL.md to ${SKILL_DST_DIR}/SKILL.md"
+
 # ── MCP server ────────────────────────────────────────────────
 SERVER="${REPO_DIR}/.cortex-plugin/mcp-server/server.js"
 if [ ! -d "$(dirname "$SERVER")/node_modules" ]; then
