@@ -23,3 +23,10 @@ __pycache__/
 # Local user/Cortex configs
 settings.json
 skills.json
+
+# Snowflake CLI project definition
+snowflake.yml
+
+# Temporary outputs
+output/
+

@@ -12,7 +12,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { spawn, execSync } from 'child_process';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import open from 'open';
@@ -280,6 +280,29 @@ server.tool(
       .replace(/[^a-z0-9_]/g, '_')
       .replace(/_+/g, '_')
       .slice(0, 50);
+
+    // Dynamically write/overwrite snowflake.yml to ensure the correct warehouse and entity definition exist
+    const ymlPath = path.resolve(process.cwd(), 'snowflake.yml');
+    const ymlContent = [
+      'definition_version: "2"',
+      'entities:',
+      `  ${safeName}:`,
+      '    type: streamlit',
+      '    identifier:',
+      `      name: ${safeName}`,
+      `    title: "Vibe Coding — ${displayName.replace(/"/g, '\\"')}"`,
+      '    query_warehouse: DATA_BIRDS_WH',
+      '    main_file: app.py',
+      '    artifacts:',
+      '      - app.py',
+      '',
+    ].join('\n');
+
+    try {
+      writeFileSync(ymlPath, ymlContent, 'utf-8');
+    } catch (ymlErr) {
+      console.error(`Warning: could not write snowflake.yml: ${ymlErr.message}`);
+    }
 
     // Deploy via Snow CLI
     let deployOutput = '';
