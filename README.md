@@ -31,23 +31,36 @@ Ensure the laptop has the following installed:
 *   **Streamlit** (`pip install streamlit`)
 *   **Cortex CLI**
 
-### 2. Run Setup Script
-Execute the setup script to install dependencies, generate configuration templates, and pre-approve Cortex MCP security prompts:
+### 2. Provision Snowflake objects (one-time, ACCOUNTADMIN)
+Workshop identity (`VIBE_WH` / `VIBE_DB.APPS` / `VIBE_ROLE` / `VIBE_USER`) must
+exist before any booth laptop can authenticate. The provisioning script lives at
+`../snowflake-vibecoding/setup.sql` — run it once per Snowflake account.
+
+### 3. Run Setup Script
 ```bash
 ./setup-laptop.sh
 ```
+On first run this:
+*   Generates a fresh `rsa_key.p8` / `rsa_key.pub` in the repo root. The private
+    key is git-ignored and stays on the laptop; the public key is committed so
+    operators can audit which key is in use.
+*   Prints an `ALTER USER VIBE_USER SET RSA_PUBLIC_KEY = '...'` statement that
+    an ACCOUNTADMIN must run to register the key.
+*   Writes a `vibecoding` connection to `~/.snowflake/config.toml`.
+*   Registers the MCP server, pre-approves its tools, and drops a populated `.env`.
+*   Installs a `vibe` shell alias that launches `./booth.sh`.
 
-### 3. Configure Connection
-1.  Open the newly created `.env` file and populate it with your Snowflake credentials.
-2.  Ensure your RSA private key is configured (typically at `~/.snowflake/rsa_key.p8`).
-3.  Execute the database preparation script in your Snowflake account:
-    ```bash
-    snow sql -f setup.sql
-    ```
-4.  Test the connection:
-    ```bash
-    snow connection test -c databirds
-    ```
+### 4. Create the workshop's tables and stage
+After the public key is registered, run:
+```bash
+snow sql -c vibecoding -f setup.sql
+```
+This creates `VIBE_DB.APPS.VIBE_SUBMISSIONS` and the `VIBE_APPS` stage.
+
+### 5. Smoke-test
+```bash
+snow connection test -c vibecoding
+```
 
 ---
 

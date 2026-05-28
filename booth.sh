@@ -112,7 +112,7 @@ echo ""
 
 cortex \
   -w "${WORKSPACE}" \
-  --connection databirds \
+  --connection vibecoding \
   --config "${WORKSPACE}/settings.json" \
   --skills "${WORKSPACE}/skills.json" \
   --dangerously-allow-all-tool-calls \

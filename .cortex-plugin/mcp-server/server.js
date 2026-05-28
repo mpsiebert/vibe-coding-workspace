@@ -291,7 +291,7 @@ server.tool(
       '    identifier:',
       `      name: ${safeName}`,
       `    title: "Vibe Coding — ${displayName.replace(/"/g, '\\"')}"`,
-      '    query_warehouse: DATA_BIRDS_WH',
+      '    query_warehouse: VIBE_WH',
       '    main_file: app.py',
       '    artifacts:',
       '      - app.py',
@@ -310,7 +310,7 @@ server.tool(
 
     try {
       deployOutput = execSync(
-        `snow streamlit deploy "${safeName}" --connection databirds --replace`,
+        `snow streamlit deploy "${safeName}" --connection vibecoding --replace`,
         { cwd: process.cwd(), stdio: 'pipe', encoding: 'utf-8' }
       );
 

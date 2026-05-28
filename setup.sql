@@ -1,23 +1,25 @@
 -- =============================================================================
--- Snowflake Vibe Coding 2.0 — Facilitator Setup Script
--- Run this once before the Summit booth opens.
--- Connection: snow sql -c databirds -f setup.sql
+-- Snowflake Vibe Coding 2.0 — Workshop Object Setup
+-- Run this once after VIBE_WH / VIBE_DB / VIBE_ROLE / VIBE_USER have been
+-- provisioned by an ACCOUNTADMIN. Provisioning script lives at
+-- ../snowflake-vibecoding/setup.sql.
+--
+-- Run as: snow sql -c vibecoding -f setup.sql
+--
+-- One-time admin prerequisite (predecessor's setup.sql grants STREAMLIT/STAGE
+-- creation but not CREATE TABLE). If this script errors with
+-- "Insufficient privileges to operate on schema 'APPS'", run as ACCOUNTADMIN:
+--
+--   GRANT CREATE TABLE ON SCHEMA VIBE_DB.APPS TO ROLE VIBE_ROLE;
+--
+-- then re-run this script.
 -- =============================================================================
 
--- 1. Database & Schema
--- -----------------------------------------------------------------------------
-CREATE DATABASE IF NOT EXISTS DATA_BIRDS_DB
-  DATA_RETENTION_TIME_IN_DAYS = 1
-  COMMENT = 'Snowflake Summit Vibe Coding 2.0 booth database';
+USE DATABASE VIBE_DB;
+USE SCHEMA APPS;
+USE WAREHOUSE VIBE_WH;
 
-USE DATABASE DATA_BIRDS_DB;
-
-CREATE SCHEMA IF NOT EXISTS PUBLIC
-  COMMENT = 'Default public schema for Vibe Coding submissions';
-
-USE SCHEMA PUBLIC;
-
--- 2. Submissions Tracking Table
+-- 1. Submissions tracking table
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS VIBE_SUBMISSIONS (
   ID              NUMBER AUTOINCREMENT PRIMARY KEY,
@@ -31,22 +33,15 @@ CREATE TABLE IF NOT EXISTS VIBE_SUBMISSIONS (
   SUBMITTED_AT    TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP() NOT NULL COMMENT 'UTC timestamp of submission'
 );
 
--- 3. Streamlit App Stage (required by snow streamlit deploy)
+-- 2. Streamlit app stage (required by snow streamlit deploy)
 -- -----------------------------------------------------------------------------
 CREATE STAGE IF NOT EXISTS VIBE_APPS
   DIRECTORY = ( ENABLE = TRUE )
   COMMENT = 'Stage for uploaded Streamlit app files';
 
--- 4. Warehouse
+-- 3. Grant write access to VIBE_ROLE
 -- -----------------------------------------------------------------------------
--- Using DATA_BIRDS_WH which already exists and is configured in connections.toml.
--- No warehouse creation needed.
-
--- 5. Note on privileges
--- -----------------------------------------------------------------------------
--- DATA_BIRDS_ROLE privileges were granted manually via a higher-privileged
--- connection before running this script. SYSADMIN has account-level access
--- by default and does not need explicit grants here.
+GRANT INSERT, SELECT ON TABLE VIBE_SUBMISSIONS TO ROLE VIBE_ROLE;
 
 -- Done!
 SELECT 'Vibe Coding 2.0 setup complete ✅' AS STATUS;

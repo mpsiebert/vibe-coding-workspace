@@ -5,12 +5,12 @@
  *
  * Required environment variables (set in .env):
  *   SNOWFLAKE_ACCOUNT      — e.g. xy12345.us-east-1
- *   SNOWFLAKE_USER         — your Snowflake username
- *   SNOWFLAKE_ROLE         — e.g. SYSADMIN
- *   SNOWFLAKE_WAREHOUSE    — e.g. VIBE_WH
- *   SNOWFLAKE_DATABASE     — DATA_BIRDS_DB
- *   SNOWFLAKE_SCHEMA       — PUBLIC
- *   SNOWFLAKE_PRIVATE_KEY_PATH — absolute path to ~/.snowflake/rsa_key.p8
+ *   SNOWFLAKE_USER         — VIBE_USER
+ *   SNOWFLAKE_ROLE         — VIBE_ROLE
+ *   SNOWFLAKE_WAREHOUSE    — VIBE_WH
+ *   SNOWFLAKE_DATABASE     — VIBE_DB
+ *   SNOWFLAKE_SCHEMA       — APPS
+ *   SNOWFLAKE_PRIVATE_KEY_PATH — absolute path to ./rsa_key.p8 in the repo
  *   SNOWFLAKE_PRIVATE_KEY_PASSPHRASE — passphrase for the private key (leave blank if unencrypted)
  */
 
@@ -45,10 +45,10 @@ async function createConnection() {
     authenticator:     'SNOWFLAKE_JWT',
     privateKey:        privateKeyFile,
     privateKeyPass:    process.env.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE ?? '',
-    role:              process.env.SNOWFLAKE_ROLE      ?? 'SYSADMIN',
+    role:              process.env.SNOWFLAKE_ROLE      ?? 'VIBE_ROLE',
     warehouse:         process.env.SNOWFLAKE_WAREHOUSE ?? 'VIBE_WH',
-    database:          process.env.SNOWFLAKE_DATABASE  ?? 'DATA_BIRDS_DB',
-    schema:            process.env.SNOWFLAKE_SCHEMA    ?? 'PUBLIC',
+    database:          process.env.SNOWFLAKE_DATABASE  ?? 'VIBE_DB',
+    schema:            process.env.SNOWFLAKE_SCHEMA    ?? 'APPS',
     application:       'VibeCoding2_MCP',
   };
 
@@ -115,7 +115,7 @@ export async function logSubmission({ displayName, theme, dataset, audience, sty
     connection = await createConnection();
 
     const sql = `
-      INSERT INTO DATA_BIRDS_DB.PUBLIC.VIBE_SUBMISSIONS
+      INSERT INTO VIBE_DB.APPS.VIBE_SUBMISSIONS
         (ATTENDEE_NAME, THEME, DATASET, AUDIENCE, STYLE, APP_URL, APP_CODE)
       VALUES
         (?, ?, ?, ?, ?, ?, ?)

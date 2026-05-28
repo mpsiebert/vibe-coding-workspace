@@ -1,160 +1,222 @@
 #!/usr/bin/env bash
-# =============================================================================
-# setup-laptop.sh
-# Run once on the facilitator/booth laptop BEFORE the event starts.
-# Sets up the MCP server and pre-approves all Cortex tool security prompts.
-# =============================================================================
+# Booth laptop setup for Vibe Coding 2.0.
+# Run this ONCE per laptop. Idempotent — safe to re-run.
+#
+# Designed to coexist with other workshop repos (e.g. ../snowbirds) on the
+# same booth laptop: separate Snowflake user (VIBE_USER), separate connection
+# name (vibecoding), separate keypair, per-workshop shell alias.
+#
+# Assumes:
+#   1. `snow`, `cortex`, `node` (>=18), `npm`, `python3`, `streamlit`, `openssl` in PATH
+#   2. An ACCOUNTADMIN has provisioned VIBE_WH / VIBE_DB.APPS / VIBE_ROLE /
+#      VIBE_USER in Snowflake (see ../snowflake-vibecoding/setup.sql for the
+#      original provisioning script).
+#   3. setup.sql has been run against VIBE_DB.APPS to create the workshop-
+#      specific objects (VIBE_SUBMISSIONS table, VIBE_APPS stage).
+#
+# What it does (all idempotent):
+#   - Generates a fresh rsa_key.p8 / rsa_key.pub in the repo root if missing.
+#     The private key is git-ignored. The public key is committed so operators
+#     can audit which key the booth laptops use.
+#   - Writes the `vibecoding` connection to ~/.snowflake/config.toml
+#   - Installs MCP server Node deps and registers the server with cortex
+#   - Pre-approves the workshop's MCP tools in ~/.snowflake/cortex/permissions.json
+#   - Drops a populated .env for the MCP server's snowflake-sdk client
+#   - Installs a shell alias `vibe` → ./booth.sh
+#   - Smoke-tests the connection
+#
+# After a NEW keypair is generated, an ACCOUNTADMIN must register its public
+# key on VIBE_USER. The script prints the exact ALTER USER statement to run.
+
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MCP_DIR="${SCRIPT_DIR}/.cortex-plugin/mcp-server"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SNOW_CONFIG_DIR="${HOME}/.snowflake"
+SNOW_CONFIG="${SNOW_CONFIG_DIR}/config.toml"
+CONNECTION_NAME="vibecoding"
+SNOWFLAKE_ACCOUNT="${SNOWFLAKE_ACCOUNT:-ogtostq-ooc82737}"
+PRIVATE_KEY="${REPO_DIR}/rsa_key.p8"
+PUBLIC_KEY="${REPO_DIR}/rsa_key.pub"
+
+# ── Preflight ─────────────────────────────────────────────────
+command -v snow      >/dev/null 2>&1 || { echo "error: 'snow' CLI not found. brew install snowflake-cli" >&2; exit 1; }
+command -v cortex    >/dev/null 2>&1 || { echo "error: 'cortex' CLI not found in PATH" >&2; exit 1; }
+command -v node      >/dev/null 2>&1 || { echo "error: 'node' >= 18 not found" >&2; exit 1; }
+command -v npm       >/dev/null 2>&1 || { echo "error: 'npm' not found" >&2; exit 1; }
+command -v python3   >/dev/null 2>&1 || { echo "error: 'python3' not found" >&2; exit 1; }
+command -v streamlit >/dev/null 2>&1 || { echo "error: 'streamlit' not found. pip install streamlit" >&2; exit 1; }
+command -v openssl   >/dev/null 2>&1 || { echo "error: 'openssl' not found" >&2; exit 1; }
 
 echo ""
 echo "╔══════════════════════════════════════════════════════╗"
 echo "║  🏔️  Snowflake Vibe Coding 2.0 — Laptop Setup        ║"
 echo "╚══════════════════════════════════════════════════════╝"
-echo ""
 
-# ---------------------------------------------------------------------------
-# 1. Check prerequisites
-# ---------------------------------------------------------------------------
-echo "▶ Checking prerequisites..."
+# ── Generate keypair (if missing) ─────────────────────────────
+# PKCS#8, 2048-bit, unencrypted — what snowflake-sdk and snow CLI accept.
+NEW_KEYPAIR=0
+if [ ! -f "$PRIVATE_KEY" ]; then
+  echo "▶ Generating fresh RSA keypair for VIBE_USER..."
+  openssl genpkey -algorithm RSA -out "$PRIVATE_KEY" -pkeyopt rsa_keygen_bits:2048 2>/dev/null
+  openssl pkey -in "$PRIVATE_KEY" -pubout -out "$PUBLIC_KEY"
+  NEW_KEYPAIR=1
+  echo "✓ Wrote $PRIVATE_KEY (git-ignored)"
+  echo "✓ Wrote $PUBLIC_KEY (commit this)"
+else
+  echo "▶ Reusing existing keypair at $PRIVATE_KEY"
+fi
+chmod 600 "$PRIVATE_KEY"
 
-command -v node   >/dev/null 2>&1 || { echo "❌ node not found. Install Node.js >= 18."; exit 1; }
-command -v npm    >/dev/null 2>&1 || { echo "❌ npm not found."; exit 1; }
-command -v python3 >/dev/null 2>&1 || { echo "❌ python3 not found."; exit 1; }
-command -v snow   >/dev/null 2>&1 || { echo "❌ snow CLI not found. Install: pip install snowflake-cli-labs"; exit 1; }
-command -v streamlit >/dev/null 2>&1 || { echo "❌ streamlit not found. Install: pip install streamlit"; exit 1; }
+# ── Write the vibecoding connection entry ────────────────────
+# Idempotent: strip any prior block, then append fresh.
+mkdir -p "$SNOW_CONFIG_DIR"
+chmod 700 "$SNOW_CONFIG_DIR"
+touch "$SNOW_CONFIG"
+chmod 600 "$SNOW_CONFIG"
 
-echo "  ✅ node   $(node --version)"
-echo "  ✅ npm    $(npm --version)"
-echo "  ✅ python3 $(python3 --version)"
-echo "  ✅ snow   $(snow --version 2>/dev/null || echo 'installed')"
-echo "  ✅ streamlit $(streamlit --version 2>/dev/null | head -1 || echo 'installed')"
-echo ""
+python3 - "$SNOW_CONFIG" "$CONNECTION_NAME" <<'PY'
+import re, sys, pathlib
+path, name = sys.argv[1], sys.argv[2]
+p = pathlib.Path(path)
+text = p.read_text() if p.exists() else ""
+pattern = re.compile(rf"(?ms)^\[connections\.{re.escape(name)}\].*?(?=^\[|\Z)")
+new = pattern.sub("", text).rstrip() + "\n"
+p.write_text(new if new.strip() else "")
+PY
 
-# ---------------------------------------------------------------------------
-# 2. Install MCP server Node dependencies
-# ---------------------------------------------------------------------------
-echo "▶ Installing MCP server dependencies..."
-cd "${MCP_DIR}"
-npm install --silent
-echo "  ✅ npm packages installed"
-echo ""
-cd "${SCRIPT_DIR}"
+cat >> "$SNOW_CONFIG" <<EOF
 
-# ---------------------------------------------------------------------------
-# 3. Create .env template (only if it doesn't already exist)
-# ---------------------------------------------------------------------------
-ENV_FILE="${SCRIPT_DIR}/.env"
-if [ ! -f "${ENV_FILE}" ]; then
-  echo "▶ Creating .env template..."
-  cat > "${ENV_FILE}" << 'EOF'
-# Snowflake connection settings for the MCP server (snowflake-client.js)
-# Fill in all values before running the booth.
+[connections.${CONNECTION_NAME}]
+account = "${SNOWFLAKE_ACCOUNT}"
+user = "VIBE_USER"
+role = "VIBE_ROLE"
+warehouse = "VIBE_WH"
+database = "VIBE_DB"
+schema = "APPS"
+authenticator = "SNOWFLAKE_JWT"
+private_key_file = "${PRIVATE_KEY}"
+EOF
+echo "✓ Wrote '${CONNECTION_NAME}' connection to ${SNOW_CONFIG}"
 
-SNOWFLAKE_ACCOUNT=your_account.region
-SNOWFLAKE_USER=your_username
-SNOWFLAKE_ROLE=SYSADMIN
+# ── .env for the MCP server's snowflake-sdk client ───────────
+cat > "${REPO_DIR}/.env" <<EOF
+# Auto-generated by setup-laptop.sh — re-run setup to refresh.
+SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
+SNOWFLAKE_USER=VIBE_USER
+SNOWFLAKE_ROLE=VIBE_ROLE
 SNOWFLAKE_WAREHOUSE=VIBE_WH
-SNOWFLAKE_DATABASE=DATA_BIRDS_DB
-SNOWFLAKE_SCHEMA=PUBLIC
-
-# RSA key-pair auth — path to your private key file
-SNOWFLAKE_PRIVATE_KEY_PATH=/Users/your_username/.snowflake/rsa_key.p8
+SNOWFLAKE_DATABASE=VIBE_DB
+SNOWFLAKE_SCHEMA=APPS
+SNOWFLAKE_PRIVATE_KEY_PATH=${PRIVATE_KEY}
 SNOWFLAKE_PRIVATE_KEY_PASSPHRASE=
 EOF
-  echo "  ✅ .env template created at ${ENV_FILE}"
-  echo "  ⚠️  Fill in your Snowflake credentials before the event!"
-else
-  echo "  ℹ️  .env already exists — skipping creation"
+echo "✓ Wrote .env with VIBE_* defaults"
+
+# ── MCP server ────────────────────────────────────────────────
+SERVER="${REPO_DIR}/.cortex-plugin/mcp-server/server.js"
+if [ ! -d "$(dirname "$SERVER")/node_modules" ]; then
+  (cd "$(dirname "$SERVER")" && npm install --silent)
 fi
-echo ""
+cortex mcp remove vibe-coding-mcp >/dev/null 2>&1 || true
+cortex mcp add vibe-coding-mcp node "$SERVER" >/dev/null
+echo "✓ Registered 'vibe-coding-mcp' with cortex"
 
-# ---------------------------------------------------------------------------
-# 4. Pre-approve Cortex MCP tool security prompts
-#    Ensures attendees aren't blocked by security dialogs during the demo.
-# ---------------------------------------------------------------------------
-echo "▶ Pre-approving Cortex MCP tool permissions..."
-
-MCP_TOOLS=(
-  "roll_challenge"
-  "start_local_streamlit"
-  "validate_app"
-  "deploy_to_snowflake"
-)
-
-for tool in "${MCP_TOOLS[@]}"; do
-  echo "  Approving: ${tool}..."
-  cortex tool approve "${tool}" --always 2>/dev/null || echo "  ⚠️  Could not approve ${tool} (cortex CLI may not support this command — check manually)"
-done
-echo "  ✅ Tool approvals complete"
-echo ""
-
-# ---------------------------------------------------------------------------
-# 5. Ensure Snowflake config directory exists
-# ---------------------------------------------------------------------------
-mkdir -p ~/.snowflake/cortex/skills/vibe-coding
-
-# ---------------------------------------------------------------------------
-# 6. Install Skill & MCP Server in local Cortex folder
-# ---------------------------------------------------------------------------
-echo "▶ Registering Vibe Coding skill and MCP server locally..."
-cp "${SCRIPT_DIR}/.cortex-plugin/skills/vibe-coding/SKILL.md" ~/.snowflake/cortex/skills/vibe-coding/SKILL.md
-echo "  ✅ Skill copied to ~/.snowflake/cortex/skills/vibe-coding/SKILL.md"
-
-# Register in ~/.snowflake/cortex/mcp.json
-MCP_JSON_FILE="$HOME/.snowflake/cortex/mcp.json"
-
-if [ -f "${MCP_JSON_FILE}" ]; then
-  # Use node to merge or add the server to existing mcp.json to avoid overwriting other tools
-  node -e '
-    const fs = require("fs");
-    const file = process.argv[1];
-    const serverPath = process.argv[2];
-    let data = { mcpServers: {} };
-    try {
-      data = JSON.parse(fs.readFileSync(file, "utf8"));
-    } catch (e) {}
-    if (!data.mcpServers) data.mcpServers = {};
-    data.mcpServers["vibe-coding-mcp"] = {
-      type: "stdio",
-      command: "node",
-      args: [serverPath]
-    };
-    fs.writeFileSync(file, JSON.stringify(data, null, 2));
-  ' "${MCP_JSON_FILE}" "${SCRIPT_DIR}/.cortex-plugin/mcp-server/server.js"
-  echo "  ✅ Registered vibe-coding-mcp in existing mcp.json"
-else
-  # Create a new mcp.json
-  cat > "${MCP_JSON_FILE}" <<EOF
-{
-  "mcpServers": {
-    "vibe-coding-mcp": {
-      "type": "stdio",
-      "command": "node",
-      "args": [
-        "${SCRIPT_DIR}/.cortex-plugin/mcp-server/server.js"
-      ]
-    }
-  }
+# ── Pre-approve workshop tools ───────────────────────────────
+# Seed ~/.snowflake/cortex/permissions.json with `granted` entries for this
+# workdir so attendees never see permission prompts. Same shape as
+# ../snowbirds/setup-laptop.sh.
+PERMS_FILE="${SNOW_CONFIG_DIR}/cortex/permissions.json"
+mkdir -p "$(dirname "$PERMS_FILE")"
+python3 - "$PERMS_FILE" "$REPO_DIR" <<'PY'
+import json, sys, os, datetime
+path, workdir = sys.argv[1], sys.argv[2]
+TOOLS = [
+    "mcp__vibe-coding-mcp__roll_challenge",
+    "mcp__vibe-coding-mcp__start_local_streamlit",
+    "mcp__vibe-coding-mcp__validate_app",
+    "mcp__vibe-coding-mcp__deploy_to_snowflake",
+]
+data = {}
+if os.path.exists(path):
+    try:
+        data = json.loads(open(path).read() or "{}")
+    except json.JSONDecodeError:
+        data = {}
+data.setdefault("working_dirs", {})
+data["working_dirs"].setdefault(workdir, {}).setdefault("cache", {})
+cache = data["working_dirs"][workdir]["cache"]
+utc = datetime.datetime.now(datetime.timezone.utc)
+now = utc.strftime("%Y-%m-%dT%H:%M:%S.") + f"{utc.microsecond // 1000:03d}Z"
+for tool in TOOLS:
+    key = json.dumps({"tool_name": tool, "type": "mcp"}, separators=(",", ":"))
+    cache[key] = {"result": "granted", "created_at": now}
+# Let the agent write app.py and the generated snowflake.yml without prompting.
+cache[json.dumps({"directory": workdir, "type": "file_write_dir"}, separators=(",", ":"))] = {
+    "result": "granted", "created_at": now,
 }
-EOF
-  echo "  ✅ Created new mcp.json and registered vibe-coding-mcp"
+with open(path, "w") as f:
+    json.dump(data, f, indent=2)
+PY
+echo "✓ Pre-approved MCP tools for ${REPO_DIR}"
+
+# ── Shell alias ──────────────────────────────────────────────
+# Installs `vibe` as a shortcut for ./booth.sh. Coexists with snowbirds'
+# `cortex` alias and any other per-workshop aliases. Idempotent.
+LAUNCHER="${REPO_DIR}/booth.sh"
+ALIAS_MARKER="# >>> vibe-coding workshop alias >>>"
+ALIAS_END="# <<< vibe-coding workshop alias <<<"
+ALIAS_BLOCK="${ALIAS_MARKER}
+# Launches the Vibe Coding 2.0 booth session.
+# Remove this block to uninstall.
+alias vibe='${LAUNCHER}'
+${ALIAS_END}"
+
+install_alias() {
+  local rc="$1"
+  [ -f "$rc" ] || touch "$rc"
+  python3 - "$rc" "$ALIAS_MARKER" "$ALIAS_END" "$ALIAS_BLOCK" <<'PY'
+import re, sys, pathlib
+rc, start, end, block = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+text = pathlib.Path(rc).read_text()
+pattern = re.compile(rf"{re.escape(start)}.*?{re.escape(end)}\n?", re.DOTALL)
+text = pattern.sub("", text).rstrip() + "\n\n" + block + "\n"
+pathlib.Path(rc).write_text(text)
+PY
+  echo "✓ Installed 'vibe' alias in $rc"
+}
+
+[ -f "${HOME}/.zshrc" ]  && install_alias "${HOME}/.zshrc"
+[ -f "${HOME}/.bashrc" ] && install_alias "${HOME}/.bashrc"
+
+# ── If we generated a new keypair, print the admin SQL ───────
+if [ "$NEW_KEYPAIR" = "1" ]; then
+  # The body of the public key — base64 between BEGIN/END lines, no headers,
+  # no newlines. This is what Snowflake's ALTER USER ... SET RSA_PUBLIC_KEY expects.
+  PUB_BODY="$(awk '/-----BEGIN/,/-----END/{if ($0 !~ /-----/) printf "%s", $0}' "$PUBLIC_KEY")"
+
+  echo ""
+  echo "╔══════════════════════════════════════════════════════╗"
+  echo "║  ⚠️  NEW KEYPAIR — admin action required              ║"
+  echo "╚══════════════════════════════════════════════════════╝"
+  echo ""
+  echo "An ACCOUNTADMIN must register the new public key on VIBE_USER:"
+  echo ""
+  echo "  ALTER USER VIBE_USER SET RSA_PUBLIC_KEY = '${PUB_BODY}';"
+  echo ""
+  echo "Then commit rsa_key.pub. The smoke test below will FAIL until this runs."
+  echo ""
 fi
-echo ""
 
-# ---------------------------------------------------------------------------
-# Done!
-# ---------------------------------------------------------------------------
-echo "╔══════════════════════════════════════════════════════╗"
-echo "║  ✅ Setup complete! Pre-event checklist:              ║"
-echo "║                                                      ║"
-echo "║  1. Fill in credentials in .env                      ║"
-echo "║  2. Add RSA private key to ~/.snowflake/rsa_key.p8   ║"
-echo "║  3. Run setup.sql in Snowflake (snow sql -f setup.sql)║"
-echo "║  4. Verify 'snow connection test -c databirds'        ║"
-echo "║  5. Run './booth.sh' to launch the agent session      ║"
-echo "╚══════════════════════════════════════════════════════╝"
-echo ""
-
+# ── Smoke test ────────────────────────────────────────────────
+echo "→ Testing Snowflake connection..."
+if snow sql -c "$CONNECTION_NAME" -q "SELECT CURRENT_USER() AS U" --format json >/dev/null 2>&1; then
+  echo "✓ Connection works — Vibe Coding booth is ready."
+  echo ""
+  echo "Open a new terminal and type:  vibe"
+  echo "(or run ./booth.sh directly in this shell)"
+elif [ "$NEW_KEYPAIR" = "1" ]; then
+  echo "ℹ  Connection test skipped — register the public key first, then re-run."
+else
+  echo "✗ Connection test FAILED. Run 'snow sql -c ${CONNECTION_NAME} -q \"SELECT 1\"' to debug." >&2
+  exit 1
+fi
