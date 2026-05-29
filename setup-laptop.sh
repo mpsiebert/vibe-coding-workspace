@@ -18,7 +18,7 @@
 #   - Generates a fresh rsa_key.p8 / rsa_key.pub in the repo root if missing.
 #     The private key is git-ignored. The public key is committed so operators
 #     can audit which key the booth laptops use.
-#   - Writes the `vibecoding` connection to ~/.snowflake/config.toml
+#   - Writes the `vibecoding` connection to ~/.snowflake/connections.toml
 #   - Installs MCP server Node deps and registers the server with cortex
 #   - Pre-approves the workshop's MCP tools in ~/.snowflake/cortex/permissions.json
 #   - Drops a populated .env for the MCP server's snowflake-sdk client
@@ -32,7 +32,7 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SNOW_CONFIG_DIR="${HOME}/.snowflake"
-SNOW_CONFIG="${SNOW_CONFIG_DIR}/config.toml"
+SNOW_CONNECTIONS="${SNOW_CONFIG_DIR}/connections.toml"
 CONNECTION_NAME="vibecoding"
 SNOWFLAKE_ACCOUNT="${SNOWFLAKE_ACCOUNT:-ogtostq-ooc82737}"
 PRIVATE_KEY="${REPO_DIR}/rsa_key.p8"
@@ -71,22 +71,22 @@ chmod 600 "$PRIVATE_KEY"
 # Idempotent: strip any prior block, then append fresh.
 mkdir -p "$SNOW_CONFIG_DIR"
 chmod 700 "$SNOW_CONFIG_DIR"
-touch "$SNOW_CONFIG"
-chmod 600 "$SNOW_CONFIG"
+touch "$SNOW_CONNECTIONS"
+chmod 600 "$SNOW_CONNECTIONS"
 
-python3 - "$SNOW_CONFIG" "$CONNECTION_NAME" <<'PY'
+python3 - "$SNOW_CONNECTIONS" "$CONNECTION_NAME" <<'PY'
 import re, sys, pathlib
 path, name = sys.argv[1], sys.argv[2]
 p = pathlib.Path(path)
 text = p.read_text() if p.exists() else ""
-pattern = re.compile(rf"(?ms)^\[connections\.{re.escape(name)}\].*?(?=^\[|\Z)")
+pattern = re.compile(rf"(?ms)^\[{re.escape(name)}\].*?(?=^\[|\Z)")
 new = pattern.sub("", text).rstrip() + "\n"
 p.write_text(new if new.strip() else "")
 PY
 
-cat >> "$SNOW_CONFIG" <<EOF
+cat >> "$SNOW_CONNECTIONS" <<EOF
 
-[connections.${CONNECTION_NAME}]
+[${CONNECTION_NAME}]
 account = "${SNOWFLAKE_ACCOUNT}"
 user = "VIBE_USER"
 role = "VIBE_ROLE"
@@ -96,7 +96,7 @@ schema = "APPS"
 authenticator = "SNOWFLAKE_JWT"
 private_key_file = "${PRIVATE_KEY}"
 EOF
-echo "✓ Wrote '${CONNECTION_NAME}' connection to ${SNOW_CONFIG}"
+echo "✓ Wrote '${CONNECTION_NAME}' connection to ${SNOW_CONNECTIONS}"
 
 # ── .env for the MCP server's snowflake-sdk client ───────────
 cat > "${REPO_DIR}/.env" <<EOF
