@@ -113,14 +113,20 @@ EOF
 echo "✓ Wrote .env with VIBE_* defaults"
 
 # ── Skill ─────────────────────────────────────────────────────
-# Cortex auto-discovers skills from ~/.snowflake/cortex/skills/, so we sync
-# the SKILL.md here on every run. Booth.sh's --skills arg ALSO loads the
-# in-repo copy; both paths point at the same content after this step.
+# Cortex auto-discovers skills and slash commands from ~/.snowflake/cortex/,
+# so we sync both here on every run. Booth.sh's --skills arg ALSO loads the
+# in-repo skill copy; both paths point at the same content after this step.
 SKILL_SRC="${REPO_DIR}/.cortex-plugin/skills/vibe-coding/SKILL.md"
 SKILL_DST_DIR="${SNOW_CONFIG_DIR}/cortex/skills/vibe-coding"
 mkdir -p "$SKILL_DST_DIR"
 cp "$SKILL_SRC" "${SKILL_DST_DIR}/SKILL.md"
 echo "✓ Synced SKILL.md to ${SKILL_DST_DIR}/SKILL.md"
+
+COMMAND_SRC="${REPO_DIR}/.cortex/commands/vibe-coding.md"
+COMMAND_DST_DIR="${SNOW_CONFIG_DIR}/cortex/commands"
+mkdir -p "$COMMAND_DST_DIR"
+cp "$COMMAND_SRC" "${COMMAND_DST_DIR}/vibe-coding.md"
+echo "✓ Synced /vibe-coding command to ${COMMAND_DST_DIR}/vibe-coding.md"
 
 # ── MCP server ────────────────────────────────────────────────
 SERVER="${REPO_DIR}/.cortex-plugin/mcp-server/server.js"
@@ -171,7 +177,7 @@ echo "✓ Pre-approved MCP tools for ${REPO_DIR}"
 
 # ── Shell alias ──────────────────────────────────────────────
 # Installs `vibe` as a shortcut for ./booth.sh. Coexists with snowbirds'
-# `cortex` alias and any other per-workshop aliases. Idempotent.
+# `birds` alias and any other per-workshop aliases. Idempotent.
 LAUNCHER="${REPO_DIR}/booth.sh"
 ALIAS_MARKER="# >>> vibe-coding workshop alias >>>"
 ALIAS_END="# <<< vibe-coding workshop alias <<<"
