@@ -6,6 +6,7 @@
 set -euo pipefail
 
 WORKSPACE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$WORKSPACE"
 
 # Reset app.py to a clean slate before each attendee
 if [ -f "${WORKSPACE}/app.py" ]; then
@@ -85,11 +86,19 @@ cat > "${WORKSPACE}/settings.json" <<EOF
       "command": "node",
       "args": [
         "${WORKSPACE}/.cortex-plugin/mcp-server/server.js"
-      ]
+      ],
+      "env": {
+        "PROJECT_DIR": "${WORKSPACE}"
+      }
     }
   }
 }
 EOF
+
+MCP_CONFIG=$(cat <<EOF
+{"mcpServers":{"vibe-coding-mcp":{"command":"node","args":["${WORKSPACE}/.cortex-plugin/mcp-server/server.js"],"transport":"stdio","env":{"PROJECT_DIR":"${WORKSPACE}"}}}}
+EOF
+)
 
 # Generate skills.json dynamically with current absolute paths
 cat > "${WORKSPACE}/skills.json" <<EOF
@@ -115,6 +124,7 @@ cortex \
   --connection vibecoding \
   --config "${WORKSPACE}/settings.json" \
   --skills "${WORKSPACE}/skills.json" \
+  --mcp-config "$MCP_CONFIG" \
   --dangerously-allow-all-tool-calls \
   --allowed-tools \
     "mcp__vibe-coding-mcp__*" \
@@ -160,7 +170,6 @@ cortex \
     "Edit(*)" \
     "EDIT(*)" \
   --session-name "vibe-coding-$(date +%H%M%S)"
-
 
 
 

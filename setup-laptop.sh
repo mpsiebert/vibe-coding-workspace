@@ -128,7 +128,7 @@ if [ ! -d "$(dirname "$SERVER")/node_modules" ]; then
   (cd "$(dirname "$SERVER")" && npm install --silent)
 fi
 cortex mcp remove vibe-coding-mcp >/dev/null 2>&1 || true
-cortex mcp add vibe-coding-mcp node "$SERVER" >/dev/null
+cortex mcp add vibe-coding-mcp -e "PROJECT_DIR=${REPO_DIR}" node "$SERVER" >/dev/null
 echo "✓ Registered 'vibe-coding-mcp' with cortex"
 
 # ── Pre-approve workshop tools ───────────────────────────────

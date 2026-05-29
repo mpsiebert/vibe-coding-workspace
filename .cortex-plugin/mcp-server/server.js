@@ -7,7 +7,7 @@
  *   4. deploy_to_snowflake   — snow streamlit deploy + QR code + DB log
  */
 
-import 'dotenv/config';
+import { config as loadEnv } from 'dotenv';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
@@ -18,6 +18,12 @@ import path from 'path';
 import open from 'open';
 import qrcode from 'qrcode-terminal';
 import { logSubmission } from './snowflake-client.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PROJECT_DIR = process.env.PROJECT_DIR
+  ? path.resolve(process.env.PROJECT_DIR)
+  : path.resolve(__dirname, '..', '..');
+loadEnv({ path: path.join(PROJECT_DIR, '.env'), quiet: true });
 
 // ---------------------------------------------------------------------------
 // Lookup tables

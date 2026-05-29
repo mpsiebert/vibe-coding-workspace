@@ -14,10 +14,17 @@
  *   SNOWFLAKE_PRIVATE_KEY_PASSPHRASE — passphrase for the private key (leave blank if unencrypted)
  */
 
-import 'dotenv/config';
+import { config as loadEnv } from 'dotenv';
 import snowflake from 'snowflake-sdk';
 import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { dirname, join, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PROJECT_DIR = process.env.PROJECT_DIR
+  ? resolve(process.env.PROJECT_DIR)
+  : resolve(__dirname, '..', '..');
+loadEnv({ path: join(PROJECT_DIR, '.env'), quiet: true });
 
 /**
  * Creates and returns an authenticated Snowflake connection.
