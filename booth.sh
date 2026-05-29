@@ -17,6 +17,12 @@ touch "${WORKSPACE}/app.py"
 # Kill any lingering Streamlit from the last attendee
 pkill -f "streamlit run" 2>/dev/null || true
 
+MCP_SERVER_DIR="${WORKSPACE}/.cortex-plugin/mcp-server"
+if [ ! -d "${MCP_SERVER_DIR}/node_modules" ]; then
+  echo "Installing Vibe Coding MCP dependencies..."
+  (cd "$MCP_SERVER_DIR" && npm install --silent)
+fi
+
 # Generate settings.json dynamically with current absolute paths
 cat > "${WORKSPACE}/settings.json" <<EOF
 {
@@ -170,7 +176,6 @@ cortex \
     "Edit(*)" \
     "EDIT(*)" \
   --session-name "vibe-coding-$(date +%H%M%S)"
-
 
 
 
