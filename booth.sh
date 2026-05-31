@@ -23,9 +23,14 @@ if [ ! -d "${MCP_SERVER_DIR}/node_modules" ]; then
   (cd "$MCP_SERVER_DIR" && npm install --silent)
 fi
 
+# Cortex Code agent connection (the AI brain) — can differ from the SQL connection.
+AGENT_CONNECTION="${VIBE_AGENT_CONNECTION:-vibecoding}"
+SQL_CONNECTION="vibecoding"
+
 # Generate settings.json dynamically with current absolute paths
 cat > "${WORKSPACE}/settings.json" <<EOF
 {
+  "cortexAgentConnectionName": "${AGENT_CONNECTION}",
   "allowedTools": [
     "mcp__vibe-coding-mcp__*",
     "mcp__vibe_coding_mcp__*",

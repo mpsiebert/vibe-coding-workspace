@@ -34,7 +34,7 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SNOW_CONFIG_DIR="${HOME}/.snowflake"
 SNOW_CONNECTIONS="${SNOW_CONFIG_DIR}/connections.toml"
 CONNECTION_NAME="vibecoding"
-SNOWFLAKE_ACCOUNT="${SNOWFLAKE_ACCOUNT:-ogtostq-ooc82737}"
+SNOWFLAKE_ACCOUNT="${SNOWFLAKE_ACCOUNT:-ohkigjz-xlc09238}"
 PRIVATE_KEY="${REPO_DIR}/rsa_key.p8"
 PUBLIC_KEY="${REPO_DIR}/rsa_key.pub"
 
