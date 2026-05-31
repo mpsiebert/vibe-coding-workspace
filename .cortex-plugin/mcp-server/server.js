@@ -4,7 +4,7 @@
  *   1. roll_challenge        — randomise (or map) the 4 challenge constraints
  *   2. start_local_streamlit — launch `streamlit run app.py` in the background
  *   3. validate_app          — python3 -m py_compile app.py
- *   4. deploy_to_snowflake   — snow streamlit deploy + QR code + DB log
+ *   4. deploy_to_snowflake   — snow streamlit deploy + DB log
  */
 
 import { config as loadEnv } from 'dotenv';
@@ -255,7 +255,7 @@ server.tool(
 // ---------------------------------------------------------------------------
 server.tool(
   'deploy_to_snowflake',
-  'Deploys app.py to Snowflake Streamlit via the Snow CLI, prints a QR code, and logs the submission.',
+  'Deploys app.py to Snowflake Streamlit via the Snow CLI and logs the submission.',,
   {
     attendeeName: z
       .string()
@@ -335,14 +335,6 @@ server.tool(
       };
     }
 
-    // Print QR code to terminal (stdout of the MCP process, visible in Cortex CLI terminal)
-    console.error('\n📱 Scan to open your live app:\n');
-    await new Promise((resolve) => {
-      qrcode.generate(appUrl, { small: true }, (qr) => {
-        console.error(qr);
-        resolve();
-      });
-    });
 
     // Log to Snowflake VIBE_SUBMISSIONS table (best-effort — don't fail deploy if logging fails)
     try {
@@ -360,10 +352,8 @@ server.tool(
             '',
             `👤 Attendee:   ${displayName}`,
             `🌐 Live URL:   ${appUrl}`,
-            `📱 QR code printed to terminal — scan to open on your phone!`,
             '',
             '🚀 You just Vibe Coded your way to production in under 5 minutes.',
-            '📸 Snap a photo of the QR code and share with #VibeCode2025 #SnowflakeSummit',
           ].join('\n'),
         },
       ],

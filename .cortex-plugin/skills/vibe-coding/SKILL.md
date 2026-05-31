@@ -137,7 +137,7 @@ Call the `deploy_to_snowflake` MCP tool, passing:
 - `theme`, `dataset`, `audience`, `style`
 
 ### Step 3 — Celebrate!
-When the tool returns the live URL and QR code:
+When the tool returns the live URL:
 
 ```
 🎉 YOU JUST SHIPPED TO PRODUCTION! 🎉
@@ -145,14 +145,11 @@ When the tool returns the live URL and QR code:
 
 Display:
 - The **live Snowflake URL** as a clickable link
-- Instructions to scan the **QR code in the terminal** to open on their phone
 - A congratulations message including their name and full prompt
 
 ### Step 4 — Wrap Up
 Say:
-> "📸 Snap a photo of the QR code! Your app lives on Snowflake. You just Vibe Coded your way to production in under 5 minutes. Welcome to the future of data app development!"
-
-Invite them to share on social with **#VibeCode2026** and **#SnowflakeSummit**.
+> "Your app lives on Snowflake. You just Vibe Coded your way to production in under 5 minutes. Welcome to the future of data app development!"
 
 ---
 
