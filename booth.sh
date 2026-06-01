@@ -32,15 +32,12 @@ cat > "${WORKSPACE}/settings.json" <<EOF
     "mcp__vibe-coding-mcp__roll_challenge",
     "mcp__vibe-coding-mcp__start_local_streamlit",
     "mcp__vibe-coding-mcp__validate_app",
-    "mcp__vibe-coding-mcp__deploy_to_snowflake",
     "VIBE-CODING-MCP__ROLL_CHALLENGE",
     "VIBE-CODING-MCP__START_LOCAL_STREAMLIT",
     "VIBE-CODING-MCP__VALIDATE_APP",
-    "VIBE-CODING-MCP__DEPLOY_TO_SNOWFLAKE",
     "roll_challenge",
     "start_local_streamlit",
     "validate_app",
-    "deploy_to_snowflake",
     "Write",
     "WRITE",
     "Bash",
@@ -62,15 +59,12 @@ cat > "${WORKSPACE}/settings.json" <<EOF
     "mcp__vibe-coding-mcp__roll_challenge",
     "mcp__vibe-coding-mcp__start_local_streamlit",
     "mcp__vibe-coding-mcp__validate_app",
-    "mcp__vibe-coding-mcp__deploy_to_snowflake",
     "VIBE-CODING-MCP__ROLL_CHALLENGE",
     "VIBE-CODING-MCP__START_LOCAL_STREAMLIT",
     "VIBE-CODING-MCP__VALIDATE_APP",
-    "VIBE-CODING-MCP__DEPLOY_TO_SNOWFLAKE",
     "roll_challenge",
     "start_local_streamlit",
     "validate_app",
-    "deploy_to_snowflake",
     "Write",
     "WRITE",
     "Bash",
@@ -113,7 +107,7 @@ cat > "${WORKSPACE}/skills.json" <<EOF
     {
       "name": "vibe-coding",
       "path": "${WORKSPACE}/.cortex-plugin/skills/vibe-coding/SKILL.md",
-      "description": "Guides booth attendees through the 5-phase Vibe Coding 2.0 Challenge"
+      "description": "Guides booth attendees through the 4-phase local Vibe Coding 2.0 Challenge"
     }
   ]
 }
@@ -138,15 +132,12 @@ cortex \
     "mcp__vibe-coding-mcp__roll_challenge" \
     "mcp__vibe-coding-mcp__start_local_streamlit" \
     "mcp__vibe-coding-mcp__validate_app" \
-    "mcp__vibe-coding-mcp__deploy_to_snowflake" \
     "VIBE-CODING-MCP__ROLL_CHALLENGE" \
     "VIBE-CODING-MCP__START_LOCAL_STREAMLIT" \
     "VIBE-CODING-MCP__VALIDATE_APP" \
-    "VIBE-CODING-MCP__DEPLOY_TO_SNOWFLAKE" \
     "roll_challenge" \
     "start_local_streamlit" \
     "validate_app" \
-    "deploy_to_snowflake" \
     "Write" \
     "WRITE" \
     "Bash" \
@@ -176,6 +167,4 @@ cortex \
     "Edit(*)" \
     "EDIT(*)" \
   --session-name "vibe-coding-$(date +%H%M%S)"
-
-
 

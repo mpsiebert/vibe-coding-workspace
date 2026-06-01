@@ -1,10 +1,9 @@
 /**
  * Vibe Coding 2.0 — MCP Server
- * Provides 4 tools to the Cortex AI agent:
+ * Provides 3 tools to the Cortex AI agent:
  *   1. roll_challenge        — randomise (or map) the 4 challenge constraints
  *   2. start_local_streamlit — launch `streamlit run app.py` in the background
  *   3. validate_app          — python3 -m py_compile app.py
- *   4. deploy_to_snowflake   — snow streamlit deploy + DB log
  */
 
 import { config as loadEnv } from 'dotenv';
@@ -12,12 +11,10 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { spawn, execSync } from 'child_process';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import open from 'open';
-import qrcode from 'qrcode-terminal';
-import { logSubmission } from './snowflake-client.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_DIR = process.env.PROJECT_DIR
@@ -214,7 +211,7 @@ server.tool(
 // ---------------------------------------------------------------------------
 server.tool(
   'validate_app',
-  'Runs `python3 -m py_compile app.py` to check for syntax errors before deploying.',
+  'Runs `python3 -m py_compile app.py` to check for syntax errors.',
   {},
   async () => {
     const appPath = path.resolve(process.cwd(), 'app.py');
@@ -231,7 +228,7 @@ server.tool(
         content: [
           {
             type: 'text',
-            text: '✅ Validation passed! app.py has no syntax errors. Ready to deploy.',
+            text: '✅ Validation passed! app.py has no syntax errors.',
           },
         ],
       };
@@ -247,117 +244,6 @@ server.tool(
         isError: true,
       };
     }
-  }
-);
-
-// ---------------------------------------------------------------------------
-// Tool 4: deploy_to_snowflake
-// ---------------------------------------------------------------------------
-server.tool(
-  'deploy_to_snowflake',
-  'Deploys app.py to Snowflake Streamlit via the Snow CLI and logs the submission.',
-  {
-    attendeeName: z
-      .string()
-      .describe('Attendee name formatted as first_last (e.g. grace_hopper). Used as the Streamlit app name.'),
-    displayName: z
-      .string()
-      .describe('Full display name of the attendee for logging (e.g. "Grace Hopper").'),
-    theme:    z.string().describe('Theme constraint (e.g. Sentiment Analyzer)'),
-    dataset:  z.string().describe('Dataset constraint (e.g. Stock Market / Crypto Prices)'),
-    audience: z.string().describe('Audience constraint (e.g. Quantitative Analysts)'),
-    style:    z.string().describe('Style constraint (e.g. Retro 80s Synthwave)'),
-  },
-  async ({ attendeeName, displayName, theme, dataset, audience, style }) => {
-    const appPath = path.resolve(process.cwd(), 'app.py');
-
-    // Read app code for logging
-    let appCode = '';
-    try {
-      appCode = readFileSync(appPath, 'utf-8');
-    } catch (_) {
-      appCode = '(could not read app.py)';
-    }
-
-    // Sanitise app name: lowercase, replace spaces/special chars with underscore
-    const safeName = attendeeName
-      .toLowerCase()
-      .replace(/[^a-z0-9_]/g, '_')
-      .replace(/_+/g, '_')
-      .slice(0, 50);
-
-    // Dynamically write/overwrite snowflake.yml to ensure the correct warehouse and entity definition exist
-    const ymlPath = path.resolve(process.cwd(), 'snowflake.yml');
-    const ymlContent = [
-      'definition_version: "2"',
-      'entities:',
-      `  ${safeName}:`,
-      '    type: streamlit',
-      '    identifier:',
-      `      name: ${safeName}`,
-      `    title: "Vibe Coding — ${displayName.replace(/"/g, '\\"')}"`,
-      '    query_warehouse: VIBE_WH',
-      '    main_file: app.py',
-      '    artifacts:',
-      '      - app.py',
-      '',
-    ].join('\n');
-
-    try {
-      writeFileSync(ymlPath, ymlContent, 'utf-8');
-    } catch (ymlErr) {
-      console.error(`Warning: could not write snowflake.yml: ${ymlErr.message}`);
-    }
-
-    // Deploy via Snow CLI
-    let deployOutput = '';
-    let appUrl = '';
-
-    try {
-      deployOutput = execSync(
-        `snow streamlit deploy "${safeName}" --connection vibecoding --replace`,
-        { cwd: process.cwd(), stdio: 'pipe', encoding: 'utf-8' }
-      );
-
-      // Extract URL from output (Snow CLI prints something like: App available at https://...)
-      const urlMatch = deployOutput.match(/https?:\/\/[^\s]+/);
-      appUrl = urlMatch ? urlMatch[0] : `https://app.snowflake.com/streamlit/${safeName}`;
-    } catch (err) {
-      const stderr = err.stderr?.toString() ?? err.message;
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `❌ Deployment failed:\n\n${stderr}\n\nFull output:\n${err.stdout?.toString() ?? ''}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-
-
-    // Log to Snowflake VIBE_SUBMISSIONS table (best-effort — don't fail deploy if logging fails)
-    try {
-      await logSubmission({ displayName, theme, dataset, audience, style, appUrl, appCode });
-    } catch (logErr) {
-      console.error(`⚠️  Could not log to VIBE_SUBMISSIONS: ${logErr.message}`);
-    }
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: [
-            '🎉 DEPLOYED TO SNOWFLAKE! 🎉',
-            '',
-            `👤 Attendee:   ${displayName}`,
-            `🌐 Live URL:   ${appUrl}`,
-            '',
-            '🚀 You just Vibe Coded your way to production in under 5 minutes.',
-          ].join('\n'),
-        },
-      ],
-    };
   }
 );
 

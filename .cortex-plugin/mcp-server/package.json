@@ -1,7 +1,7 @@
 {
   "name": "vibe-coding-mcp",
   "version": "2.0.0",
-  "description": "MCP server for Snowflake Summit Vibe Coding 2.0 booth — provides roll_challenge, start_local_streamlit, validate_app, and deploy_to_snowflake tools.",
+  "description": "MCP server for Snowflake Summit Vibe Coding 2.0 booth — provides roll_challenge, start_local_streamlit, and validate_app tools.",
   "type": "module",
   "main": "server.js",
   "scripts": {
@@ -10,10 +10,8 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "snowflake-sdk": "^1.14.0",
     "dotenv": "^16.4.5",
-    "open": "^10.1.0",
-    "qrcode-terminal": "^0.12.0"
+    "open": "^10.1.0"
   },
   "engines": {
     "node": ">=18.0.0"

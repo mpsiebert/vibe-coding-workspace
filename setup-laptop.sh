@@ -11,8 +11,6 @@
 #   2. An ACCOUNTADMIN has provisioned VIBE_WH / VIBE_DB.APPS / VIBE_ROLE /
 #      VIBE_USER in Snowflake (see ../snowflake-vibecoding/setup.sql for the
 #      original provisioning script).
-#   3. setup.sql has been run against VIBE_DB.APPS to create the workshop-
-#      specific objects (VIBE_SUBMISSIONS table, VIBE_APPS stage).
 #
 # What it does (all idempotent):
 #   - Generates a fresh rsa_key.p8 / rsa_key.pub in the repo root if missing.
@@ -21,7 +19,6 @@
 #   - Writes the `vibecoding` connection to ~/.snowflake/connections.toml
 #   - Installs MCP server Node deps and registers the server with cortex
 #   - Pre-approves the workshop's MCP tools in ~/.snowflake/cortex/permissions.json
-#   - Drops a populated .env for the MCP server's snowflake-sdk client
 #   - Installs a shell alias `vibe` → ./booth.sh
 #   - Smoke-tests the connection
 #
@@ -150,7 +147,6 @@ TOOLS = [
     "mcp__vibe-coding-mcp__roll_challenge",
     "mcp__vibe-coding-mcp__start_local_streamlit",
     "mcp__vibe-coding-mcp__validate_app",
-    "mcp__vibe-coding-mcp__deploy_to_snowflake",
 ]
 data = {}
 if os.path.exists(path):
@@ -166,7 +162,7 @@ now = utc.strftime("%Y-%m-%dT%H:%M:%S.") + f"{utc.microsecond // 1000:03d}Z"
 for tool in TOOLS:
     key = json.dumps({"tool_name": tool, "type": "mcp"}, separators=(",", ":"))
     cache[key] = {"result": "granted", "created_at": now}
-# Let the agent write app.py and the generated snowflake.yml without prompting.
+# Let the agent write app.py without prompting.
 cache[json.dumps({"directory": workdir, "type": "file_write_dir"}, separators=(",", ":"))] = {
     "result": "granted", "created_at": now,
 }

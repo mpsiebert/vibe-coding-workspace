@@ -1,6 +1,6 @@
 # 🏔️ Snowflake Vibe Coding 2.0 — Booth Experience
 
-Welcome to **Vibe Coding 2.0**, an interactive, AI-guided agent experience designed for Snowflake events and summit booths. This repository contains the complete package to run the guided 5-phase vibe coding challenge where attendees build and deploy a Streamlit application on Snowflake.
+Welcome to **Vibe Coding 2.0**, an interactive, AI-guided agent experience designed for Snowflake events and summit booths. This repository contains the complete package to run the guided 4-phase vibe coding challenge where attendees build and run a Streamlit application locally.
 
 ---
 
@@ -13,7 +13,6 @@ This project bundles everything required to run the booth experience seamlessly:
     *   `roll_challenge`: Generates the random theme and requirements.
     *   `start_local_streamlit`: Runs the local Streamlit application.
     *   `validate_app`: Verifies code correctness and logic.
-    *   `deploy_to_snowflake`: Deploys the completed app to Snowflake.
 *   **`app.py`**: The dynamic workspace file where the agent writes the Streamlit app.
 *   **Automation Scripts**: Helper shell scripts to manage the booth laptop lifecycle.
 
@@ -50,14 +49,7 @@ On first run this:
 *   Registers the MCP server, pre-approves its tools, and drops a populated `.env`.
 *   Installs a `vibe` shell alias that launches `./booth.sh`.
 
-### 4. Create the workshop's tables and stage
-After the public key is registered, run:
-```bash
-snow sql -c vibecoding -f setup.sql
-```
-This creates `VIBE_DB.APPS.VIBE_SUBMISSIONS` and the `VIBE_APPS` stage.
-
-### 5. Smoke-test
+### 4. Smoke-test
 ```bash
 snow connection test -c vibecoding
 ```

@@ -6,7 +6,7 @@
     {
       "name": "vibe-coding",
       "path": "skills/vibe-coding/SKILL.md",
-      "description": "Guides an attendee through the 5-phase Vibe Coding Challenge: roll constraints, scaffold app, iterate, validate, and deploy to Snowflake."
+      "description": "Guides an attendee through the 4-phase Vibe Coding Challenge: roll constraints, scaffold app, iterate, and validate locally."
     }
   ],
   "hooks": {
@@ -17,7 +17,7 @@
       "name": "vibe-coding-mcp",
       "command": "node",
       "args": [".cortex-plugin/mcp-server/server.js"],
-      "description": "MCP server providing roll_challenge, start_local_streamlit, validate_app, and deploy_to_snowflake tools."
+      "description": "MCP server providing roll_challenge, start_local_streamlit, and validate_app tools."
     }
   ]
 }
