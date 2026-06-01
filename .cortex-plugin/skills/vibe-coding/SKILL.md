@@ -140,6 +140,9 @@ Say:
 Then add:
 > "After Snowflake Summit, use Cortex Code CLI yourself to keep building vibe-coded apps simply and securely with Snowflake."
 
+Finally, tell the facilitator:
+> "When you're ready for the next attendee, run `/reset` to clear the workspace, then run `/vibe-coding` to start fresh."
+
 ---
 
 ## Error Handling

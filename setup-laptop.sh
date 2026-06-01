@@ -119,11 +119,10 @@ mkdir -p "$SKILL_DST_DIR"
 cp "$SKILL_SRC" "${SKILL_DST_DIR}/SKILL.md"
 echo "✓ Synced SKILL.md to ${SKILL_DST_DIR}/SKILL.md"
 
-COMMAND_SRC="${REPO_DIR}/.cortex/commands/vibe-coding.md"
 COMMAND_DST_DIR="${SNOW_CONFIG_DIR}/cortex/commands"
 mkdir -p "$COMMAND_DST_DIR"
-cp "$COMMAND_SRC" "${COMMAND_DST_DIR}/vibe-coding.md"
-echo "✓ Synced /vibe-coding command to ${COMMAND_DST_DIR}/vibe-coding.md"
+cp "${REPO_DIR}/.cortex/commands/"*.md "$COMMAND_DST_DIR/"
+echo "✓ Synced Cortex commands to ${COMMAND_DST_DIR}"
 
 # ── MCP server ────────────────────────────────────────────────
 SERVER="${REPO_DIR}/.cortex-plugin/mcp-server/server.js"

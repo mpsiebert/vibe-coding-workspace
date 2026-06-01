@@ -79,6 +79,8 @@ The agent will greet the attendee with high energy, roll for the challenge theme
 
 ## 🔄 Resetting the Workspace
 If you need to reset the workspace between attendees without relaunching the CLI, run:
-```bash
-./reset.sh
+```text
+/reset
 ```
+
+You can also run `./reset.sh` directly from a shell.
